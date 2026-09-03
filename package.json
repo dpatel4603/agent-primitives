@@ -1,0 +1,20 @@
+{
+  "name": "agent-primitives",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc --noEmit",
+    "cf-typegen": "wrangler types --env-interface CloudflareBindings"
+  },
+  "dependencies": {
+    "hono": "4.13.5",
+    "mppx": "0.9.2"
+  },
+  "devDependencies": {
+    "typescript": "5.9.2",
+    "wrangler": "4.128.0"
+  }
+}
