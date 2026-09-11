@@ -88,3 +88,7 @@ Independent security review at `0e40eb8` found no additional actionable issues a
 The existing Cloudflare Builds check has no useful GitHub diagnostic output. Confirm build logs after authentication. Initial deployment and new Durable Object migrations require `wrangler deploy`; a nonproduction branch's default `wrangler versions upload` cannot apply a new Durable Object class. Runtime secrets must be configured separately from build variables.
 
 PayAI (`https://facilitator.payai.network`) advertises Base and Base Sepolia v2 support and a no-key allowance of 1,000 lifetime settlements, subject to recipient and shared-IP limits. It is a candidate, not a verified production payment integration. Beyond the allowance, merchant credentials and credits are required. See https://docs.payai.network/x402/facilitators/pricing.
+
+### Live x402 negative-path verification
+
+On 2026-09-11, the production payment module sent a correctly signed Base Sepolia authorization from a fresh unfunded ephemeral account to PayAI's real `/verify` endpoint. PayAI returned `isValid: false` with `invalid_exact_evm_insufficient_balance`; the API preflight returned HTTP 402. The harness prohibited every outbound URL except `/verify`, so no settlement was submitted. This confirms live facilitator request/signature compatibility and rejection of unfunded proofs; it does not prove successful x402 settlement or mainnet readiness.
