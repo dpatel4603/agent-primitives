@@ -12,7 +12,7 @@ for (const body of [null, [], 1, { ...query, recipient: 1 }, { ...query, limit: 
 test('date defaults and explicit pagination', () => { assert.equal(parseQuery({ recipient: 'Palantir' }, new Date('2026-09-11')).start_date, '2023-09-11'); assert.equal(parseQuery({ ...query, page: 3 }).page, 3) })
 test('UEI query pins upstream identity, returns source links and validated schema', async () => {
   let sent: any
-  const client = new Fedspend(async (_url, init) => { sent = JSON.parse(init!.body as string); return Response.json({ results: [row], page_metadata: { hasNext: true }, messages: [] }) })
+  const client = new Fedspend(async (_url, init) => { sent = JSON.parse(init!.body as string); return Response.json({ results: [row], page_metadata: { hasNext: true, page: 2 }, messages: [] }) })
   const result = { ...await client.lookup(parseQuery({ ...query, page: 2 })), request_id: 'request' }
   assert.deepEqual(sent.filters.recipient_search_text, [query.recipient_uei]); assert.equal(sent.page, 2)
   assert.equal(result.next_page, 3); assert.equal(result.returned_award_amount_sum, 100)
@@ -27,12 +27,12 @@ test('brand names do not silently select the first autocomplete result', async (
   await assert.rejects(client.lookup(parseQuery({ recipient: 'Palantir' })), reject(409)); assert.equal(calls, 1)
 })
 test('exact name without UEI requires explicit identity confirmation before paying', async () => {
-  const client = new Fedspend(async url => String(url).includes('autocomplete') ? Response.json({ results: [{ recipient_name: query.recipient, uei: null }] }) : Response.json({ results: [row], page_metadata: { hasNext: false } }))
+  const client = new Fedspend(async url => String(url).includes('autocomplete') ? Response.json({ results: [{ recipient_name: query.recipient, uei: null }] }) : Response.json({ results: [row], page_metadata: { hasNext: false, page: 1 } }))
   await assert.rejects(client.lookup(parseQuery({ recipient: query.recipient })), e => reject(409)(e) && (e as ApiError).details.recipient_ueis[0] === query.recipient_uei)
 })
 for (const rows of [[{ ...row, 'Recipient UEI': 'OTHER1234567' }], [{ ...row, 'Award Amount': null }], [row, row]]) {
   test(`reject corrupt/ambiguous awards ${JSON.stringify(rows)}`, async () => {
-    const client = new Fedspend(async () => Response.json({ results: rows, page_metadata: { hasNext: false } }))
+    const client = new Fedspend(async () => Response.json({ results: rows, page_metadata: { hasNext: false, page: 1 } }))
     await assert.rejects(client.lookup(parseQuery(query)), e => e instanceof ApiError)
   })
 }
@@ -48,4 +48,11 @@ test('discovery uses scanner pricing/protocol shape and explicit schemas', () =>
   assert.ok(operation.requestBody.content['application/json'].schema)
   assert.ok(operation.responses['200'].content['application/json'].schema)
   assert.equal(operation['x-payment-info'].protocols.length, 1)
+})
+for (const data of [
+  { results: [{ ...row, 'Recipient Name': null }], page_metadata: { page: 1, hasNext: false } },
+  { results: [row], page_metadata: { page: 2, hasNext: false } },
+  { results: [row], page_metadata: { page: 1, hasNext: false }, messages: [{}] },
+]) test('source drift is rejected before delivering an invalid response', async () => {
+  await assert.rejects(new Fedspend(async () => Response.json(data)).lookup(parseQuery(query)), reject(502))
 })

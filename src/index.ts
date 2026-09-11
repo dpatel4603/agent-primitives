@@ -6,6 +6,7 @@ export { PaymentState } from './state.ts'
 type Bindings = Config & { PAYMENT_STATE: DurableObjectNamespace }
 const app = new Hono<{ Bindings: Bindings }>()
 app.get('/', c => c.json({ name: 'Agent Primitives', version: '0.2.0', price: '$0.02 per page', discovery: `${c.env.PUBLIC_BASE_URL}/openapi.json`, instructions: `${c.env.PUBLIC_BASE_URL}/llms.txt` }))
+app.get('/favicon.ico', c => c.body('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="6" fill="#12354b"/><path fill="#e7f2ef" d="M5 12 16 5l11 7v3H5zm3 5h4v8H8zm6 0h4v8h-4zm6 0h4v8h-4zM5 27h22v3H5z"/></svg>', 200, { 'Content-Type': 'image/svg+xml', 'Cache-Control': 'public, max-age=86400' }))
 app.get('/health', c => c.json({ ok: true }))
 app.get('/sample', c => c.json({ method: 'POST', path: PATH, body: { recipient: 'PALANTIR USG INC', recipient_uei: 'HNN4F9JZWDY8', award_types: 'contracts', limit: 10, page: 1 } }))
 app.get('/openapi.json', c => c.json(openapi(c.env)))

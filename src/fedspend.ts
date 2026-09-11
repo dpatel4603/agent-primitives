@@ -70,9 +70,11 @@ export class Fedspend {
       fields: ['Award ID', 'Recipient Name', 'Recipient UEI', 'Award Amount', 'Start Date', 'End Date', 'Awarding Agency', 'Awarding Sub Agency', 'Award Type', 'Description'],
       sort: 'Award Amount', order: 'desc', page: query.page, limit: query.limit,
     })
-    if (!Array.isArray(data.results) || !data.results.every(record) || !record(data.page_metadata) || typeof data.page_metadata.hasNext !== 'boolean') throw new ApiError(502, 'Award source schema changed', { retryable: true })
+    if (!Array.isArray(data.results) || !data.results.every(record) || !record(data.page_metadata) || typeof data.page_metadata.hasNext !== 'boolean' || data.page_metadata.page !== query.page) throw new ApiError(502, 'Award source schema changed', { retryable: true })
     const rows = data.results as Record<string, unknown>[]
     if (rows.length > query.limit || rows.some(r => typeof r['Award Amount'] !== 'number' || !Number.isFinite(r['Award Amount']))) throw new ApiError(502, 'Award source has invalid amounts or page size', { retryable: true })
+    const stringFields = ['Award ID', 'Recipient Name', 'Recipient UEI', 'Start Date', 'End Date', 'Awarding Agency', 'Awarding Sub Agency', 'Award Type', 'Description']
+    if (rows.some(r => typeof r['Recipient Name'] !== 'string' || stringFields.some(k => r[k] !== undefined && r[k] !== null && typeof r[k] !== 'string')) || (data.messages !== undefined && (!Array.isArray(data.messages) || !data.messages.every(m => typeof m === 'string')))) throw new ApiError(502, 'Award source fields changed', { retryable: true })
     const identifiers = new Set(rows.map(r => r['Recipient UEI']).filter(x => typeof x === 'string' && x.length > 0))
     if (query.recipient_uei ? rows.some(r => r['Recipient UEI'] !== query.recipient_uei) : identifiers.size > 1 || rows.some(r => typeof r['Recipient Name'] !== 'string' || normalize(r['Recipient Name']) !== normalize(resolved))) throw new ApiError(409, 'Award results do not identify a single matching recipient; specify recipient_uei', { recipient_ueis: [...identifiers] })
     const ids = rows.map(r => r.generated_internal_id)

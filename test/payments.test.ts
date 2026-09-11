@@ -60,3 +60,17 @@ test('malformed and wrong-method native credentials cannot create payment identi
   const payments = createPayments(config, Store.memory())
   await assert.rejects(payments.inspect(new Request(`https://api.example.com${PATH}`, { method: 'POST', headers: { authorization: 'Bearer fake' } })))
 })
+test('runtime Bazaar includes input/output schemas and preserves mppx binding', async () => {
+  const payments = createPayments(dual, Store.memory()); const result = await payments.pay(request())
+  if (result.status !== 402) throw new Error('Missing challenge')
+  const challenge = Header.decodePaymentRequired(result.challenge.headers.get('payment-required')!)
+  assert.ok(challenge.extensions?.mppx)
+  assert.ok((challenge.extensions?.bazaar.schema as any).properties.output.properties.example)
+})
+test('unfunded x402 authorization is rejected by read-only preflight', async () => {
+  const payments = createPayments(dual, Store.memory()); const payload = await signedPayment(payments)
+  const original = globalThis.fetch; const calls: string[] = []
+  globalThis.fetch = async url => { calls.push(String(url)); return Response.json({ isValid: false, invalidReason: 'insufficient_funds' }) }
+  try { assert.equal((await payments.validate(request(Header.encodePaymentSignature(payload as any))))?.status, 402); assert.deepEqual(calls, ['https://facilitator.example/verify']) }
+  finally { globalThis.fetch = original }
+})

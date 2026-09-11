@@ -1,14 +1,15 @@
 import { ApiError, parseQuery } from './fedspend.ts'
 import type { Query } from './fedspend.ts'
 export type PaymentResult = { status: 402; challenge: Response } | { status: 200; withReceipt: (response: Response) => Response }
-export type Identity = { key: string; proof: string }
+export type PaymentMetadata = { protocol: 'mpp' | 'x402'; network: string; asset: string; recipient: string; amount: string; payer?: string; nonce?: string; transaction_hash?: string }
+export type Identity = { key: string; proof: string; payment?: PaymentMetadata }
 export interface Payments {
   inspect(request: Request): Promise<Identity>
   validate(request: Request): Promise<Response | null>
   pay(request: Request): Promise<PaymentResult>
 }
 export type StoredResponse = { body: string; status: number; headers: [string, string][] }
-export type Entry = { fingerprint: string; proof: string; owner: string; lease_until: number; state: 'preparing' | 'prepared' | 'settling' | 'complete'; created_at: string; prepared?: string; response?: StoredResponse }
+export type Entry = { fingerprint: string; proof: string; owner: string; lease_until: number; state: 'preparing' | 'prepared' | 'settling' | 'complete'; created_at: string; payment?: PaymentMetadata; prepared?: string; response?: StoredResponse }
 export interface Ledger {
   get(key: string): Promise<Entry | undefined>
   claim(key: string, fingerprint: string, proof: string): Promise<{ acquired: boolean; entry: Entry }>
@@ -75,7 +76,7 @@ export function createGateway(deps: { payments: Payments; lookup(query: Query): 
         const prepared = JSON.stringify({ ...(result as Record<string, unknown>), request_id })
         // Keep well below storage limits, including receipts. Persist BEFORE pay.
         if (new TextEncoder().encode(prepared).byteLength > 90000) throw new ApiError(413, 'Result too large; reduce limit and retry. No payment submitted.')
-        entry = { ...entry, state: 'prepared', prepared }
+        entry = { ...entry, state: 'prepared', prepared, payment: identity.payment }
         await deps.ledger.put(request_id, entry.owner, entry)
       }
       entry = { ...entry, state: 'settling' }
