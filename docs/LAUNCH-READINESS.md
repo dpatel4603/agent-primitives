@@ -8,7 +8,7 @@ Owner confirmed `0xA9BC8c469006398F67ACAA6d0CA89CC14cCd0328` as the receiving ad
 - [x] Cloudflare authenticated, production origin configured, signing secret provisioned.
 - [ ] x402 facilitator confirmed for chosen network, including its authentication requirements.
 - [ ] Durable Object migrations deployed and restart/concurrency behavior verified in Workers.
-- [ ] Independent PR review findings resolved and CI green.
+- [x] Independent PR review findings resolved and CI green.
 - [x] Live `/openapi.json` passes scanner discovery/schema audit.
 - [x] Unpaid runtime probe returns correct MPP and x402 challenges.
 - [ ] One successful real paid request on each advertised protocol with matching recipient, amount, receipt and saved response.
@@ -110,3 +110,7 @@ On 2026-09-11, the production payment module sent a correctly signed Base Sepoli
 ### Outstanding paid verification
 
 AgentCash test-wallet balances on Base and Tempo were both zero. Funding and explicit approval for at most $0.10 per network were requested. Automatic approval review rejected a proposed signed mainnet request as an unconfirmed financial side effect; no mainnet test payment was submitted. Real production USAspending lookup, successful mainnet MPP/x402 payment, paid replay, and on-chain operator reconciliation must still pass before scanner submissions. Do not label the service listed or fully launch-verified yet.
+
+### Automated build and final review
+
+GitHub Actions and the Cloudflare Workers Builds check both passed for `ab91a2af45a52b0da908e17f3aa94fafc4a777dd` after the successful manual migration/deployment. Cloudflare build: `cfeba605-8323-4a4b-be2c-400b8b1fae4d`. Historical failure logs remain unread, but an automated build failure is no longer an active launch blocker. Independent security review of that exact code head found no new actionable issues and independently passed all 56 tests.
