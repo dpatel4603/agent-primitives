@@ -3,6 +3,7 @@ import { openapi } from './openapi.ts'
 import { PATH } from './payments.ts'
 import type { Config } from './payments.ts'
 export { PaymentState } from './state.ts'
+export { PaymentOperator } from './operator.ts'
 type Bindings = Config & { PAYMENT_STATE: DurableObjectNamespace }
 const app = new Hono<{ Bindings: Bindings }>()
 app.get('/', c => c.json({ name: 'Agent Primitives', version: '0.2.0', price: '$0.02 per page', discovery: `${c.env.PUBLIC_BASE_URL}/openapi.json`, instructions: `${c.env.PUBLIC_BASE_URL}/llms.txt` }))

@@ -2,18 +2,21 @@
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "agent-primitives",
   "main": "src/index.ts",
+  "workers_dev": true,
+  "preview_urls": false,
   "compatibility_date": "2026-09-03",
   "compatibility_flags": [
     "nodejs_compat"
   ],
   "vars": {
-    "PUBLIC_BASE_URL": "https://agent-primitives.YOUR-SUBDOMAIN.workers.dev",
-    "MPP_RECIPIENT": "0x22e4490BF0393E0160F98733B1273Df3e61256e6",
+    "PUBLIC_BASE_URL": "https://agent-primitives.dpatel4603.workers.dev",
+    "MPP_RECIPIENT": "0xA9BC8c469006398F67ACAA6d0CA89CC14cCd0328",
     "MPP_CURRENCY": "0x20c0000000000000000000000000000000000000",
     "TEMPO_TESTNET": "false",
-    "X402_ENABLED": "false",
+    "X402_ENABLED": "true",
     "X402_NETWORK": "base",
     "X402_RECIPIENT": "0xA9BC8c469006398F67ACAA6d0CA89CC14cCd0328",
+    "X402_FACILITATOR_URL": "https://facilitator.payai.network",
     "UPSTREAM_USER_AGENT": "Agent-Primitives/0.2"
   },
   "durable_objects": {

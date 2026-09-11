@@ -5,8 +5,6 @@
   "compatibility_date": "2026-09-03",
   "compatibility_flags": ["nodejs_compat"],
   "workers_dev": false,
-  "durable_objects": {
-    "bindings": [{ "name": "PAYMENT_STATE", "class_name": "PaymentState", "script_name": "agent-primitives", "remote": true }]
-  },
-  "dev": { "ip": "127.0.0.1", "port": 8788 }
+  "services": [{ "binding": "PAYMENT_OPERATOR", "service": "agent-primitives", "entrypoint": "PaymentOperator", "remote": true }],
+  "dev": { "ip": "127.0.0.1", "port": 8790 }
 }

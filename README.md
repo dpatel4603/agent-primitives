@@ -1,6 +1,6 @@
 # Agent Primitives
 
-One agent-callable federal-awards API, backed by USAspending.gov. A successful page costs $0.02. MPP on Tempo is supported; x402 USDC on Base or Base Sepolia can be enabled through configuration. Neither a live deployment nor scanner listing is implied by this repository.
+One agent-callable federal-awards API, backed by USAspending.gov. A successful page costs $0.02. MPP on Tempo is supported; x402 USDC on Base or Base Sepolia can be enabled through configuration. The API is deployed at https://agent-primitives.dpatel4603.workers.dev. Production payment verification and scanner listings are still pending.
 
 ## Request
 
@@ -47,7 +47,7 @@ npm run dev
 npm run check
 ```
 
-Use `TEMPO_TESTNET=true` locally. x402 starts disabled. Enable only with an explicit network, receiving address and HTTPS facilitator supporting that network. Free routes: `/`, `/health`, `/sample`, `/llms.txt`, `/openapi.json`. Health means the process is responding, not that payment or upstream services have been verified.
+Use `TEMPO_TESTNET=true` locally. The example local environment disables x402. Enable only with an explicit network, receiving address and HTTPS facilitator supporting that network. Free routes: `/`, `/health`, `/sample`, `/llms.txt`, `/openapi.json`. Health means the process is responding, not that payment or upstream services have been verified.
 
 ## Production configuration
 
@@ -60,6 +60,8 @@ Use `TEMPO_TESTNET=true` locally. x402 starts disabled. Enable only with an expl
 7. Complete the launch checks below before registration.
 
 OpenAPI includes explicit input/output schemas, fixed price metadata, protocol declarations, and agent instructions. Runtime challenges remain authoritative. Register the verified origin at [MPP Scan](https://mppscan.com/register) and [x402scan](https://www.x402scan.com/resources/register).
+
+Python clients should set a descriptive `User-Agent`, such as `AgentPrimitives-Client/1.0`; the default `Python-urllib` agent is rejected by the workers.dev edge filter.
 
 ## Checks
 
