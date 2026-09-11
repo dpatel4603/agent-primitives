@@ -12,7 +12,8 @@
     "MPP_CURRENCY": "0x20c0000000000000000000000000000000000000",
     "TEMPO_TESTNET": "false",
     "X402_ENABLED": "false",
-    "X402_NETWORK": "base-sepolia",
+    "X402_NETWORK": "base",
+    "X402_RECIPIENT": "0xA9BC8c469006398F67ACAA6d0CA89CC14cCd0328",
     "UPSTREAM_USER_AGENT": "Agent-Primitives/0.2"
   },
   "durable_objects": {

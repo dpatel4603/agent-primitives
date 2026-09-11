@@ -2,6 +2,8 @@
 
 ## Required before registration
 
+Owner supplied Base receiving address: `0xA9BC8c469006398F67ACAA6d0CA89CC14cCd0328`. Production x402 configuration records this address on Base and remains disabled pending deployment/payment verification. Tempo receiving address confirmation is still pending; the old MPP recipient must not be used for launch without owner confirmation.
+
 - [ ] Receiving addresses and currencies confirmed by owner for Tempo and Base.
 - [ ] Cloudflare authenticated, production origin configured, signing secret provisioned.
 - [ ] x402 facilitator confirmed for chosen network, including its authentication requirements.
