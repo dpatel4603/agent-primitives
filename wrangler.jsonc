@@ -3,11 +3,35 @@
   "name": "agent-primitives",
   "main": "src/index.ts",
   "compatibility_date": "2026-09-03",
-  "compatibility_flags": ["nodejs_compat"],
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
   "vars": {
     "PUBLIC_BASE_URL": "https://agent-primitives.YOUR-SUBDOMAIN.workers.dev",
     "MPP_RECIPIENT": "0x22e4490BF0393E0160F98733B1273Df3e61256e6",
     "MPP_CURRENCY": "0x20c0000000000000000000000000000000000000",
-    "TEMPO_TESTNET": "false"
+    "TEMPO_TESTNET": "false",
+    "X402_ENABLED": "false",
+    "X402_NETWORK": "base-sepolia",
+    "UPSTREAM_USER_AGENT": "Agent-Primitives/0.2"
+  },
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "PAYMENT_STATE",
+        "class_name": "PaymentState"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": [
+        "PaymentState"
+      ]
+    }
+  ],
+  "observability": {
+    "enabled": true
   }
 }
