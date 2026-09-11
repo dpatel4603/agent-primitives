@@ -1,0 +1,10 @@
+{
+  "$schema": "../node_modules/wrangler/config-schema.json",
+  "name": "agent-primitives-local-operator",
+  "main": "operator.ts",
+  "compatibility_date": "2026-09-03",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": false,
+  "services": [{ "binding": "PAYMENT_OPERATOR", "service": "agent-primitives", "entrypoint": "PaymentOperator", "remote": true }],
+  "dev": { "ip": "127.0.0.1", "port": 8790 }
+}

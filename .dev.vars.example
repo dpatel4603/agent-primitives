@@ -1,0 +1,9 @@
+PUBLIC_BASE_URL=http://localhost:8787
+MPP_SECRET_KEY=replace-with-at-least-32-random-bytes
+TEMPO_TESTNET=true
+X402_ENABLED=false
+# To test x402, use Base Sepolia with a verified test facilitator:
+# X402_ENABLED=true
+# X402_NETWORK=base-sepolia
+# X402_RECIPIENT=0xYOUR_TEST_RECEIVING_ADDRESS
+# X402_FACILITATOR_URL=https://YOUR_TEST_FACILITATOR
