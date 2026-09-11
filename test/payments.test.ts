@@ -74,3 +74,22 @@ test('unfunded x402 authorization is rejected by read-only preflight', async () 
   try { assert.equal((await payments.validate(request(Header.encodePaymentSignature(payload as any))))?.status, 402); assert.deepEqual(calls, ['https://facilitator.example/verify']) }
   finally { globalThis.fetch = original }
 })
+test('equivalent Tempo signature encodings use canonical transaction identity', async () => {
+  const Tx = await import('ox/tempo/TxEnvelopeTempo')
+  const Envelope = await import('ox/tempo/SignatureEnvelope')
+  const Secp = await import('ox/Secp256k1')
+  const Rlp = await import('ox/Rlp'); const Hex = await import('ox/Hex')
+  const { keccak256 } = await import('viem')
+  const tx = Tx.from({ chainId: 42431, nonce: 0n, gas: 100000n, maxFeePerGas: 1000000000n, calls: [{ to: config.MPP_CURRENCY as `0x${string}`, data: '0x', value: 0n }] })
+  const signature = Secp.sign({ payload: Tx.getSignPayload(tx), privateKey: `0x${'11'.repeat(32)}` })
+  const canonical = Tx.serialize(Tx.from(tx, { signature }))
+  const fields = Rlp.toHex(Hex.slice(canonical, 1)) as any[]
+  fields[fields.length - 1] = Envelope.serialize(Envelope.from(signature), { magic: true })
+  const alternate = Hex.concat('0x76', Rlp.fromHex(fields))
+  assert.notEqual(alternate, canonical)
+  const challenge = Challenge.from({ secretKey: config.MPP_SECRET_KEY, realm: 'api.example.com', method: 'tempo', intent: 'charge', request: { amount: '20000', currency: config.MPP_CURRENCY, recipient: config.MPP_RECIPIENT, methodDetails: { chainId: 42431 } }, expires: new Date(Date.now() + 60000) })
+  const req = (serialized: string) => new Request(`https://api.example.com${PATH}`, { method: 'POST', headers: { authorization: Credential.serialize({ challenge, payload: { type: 'transaction', signature: serialized } }) } })
+  const payments = createPayments(config, Store.memory())
+  const a = await payments.inspect(req(canonical)); const b = await payments.inspect(req(alternate))
+  assert.equal(a.key, b.key); assert.equal(a.payment?.transaction_hash, keccak256(canonical)); assert.equal(b.payment?.transaction_hash, a.payment?.transaction_hash)
+})

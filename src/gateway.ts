@@ -18,23 +18,30 @@ export interface Ledger {
 }
 export const sha256 = async (value: string) => [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value)))].map(x => x.toString(16).padStart(2, '0')).join('')
 export const canonicalize = (v: unknown): unknown => Array.isArray(v) ? v.map(canonicalize) : v && typeof v === 'object' ? Object.fromEntries(Object.entries(v).sort(([a], [b]) => a.localeCompare(b)).map(([k, value]) => [k, canonicalize(value)])) : v
-export async function readBody(request: Request, max = 8192) {
+export async function readBody(request: Request, max = 8192, timeoutMs = 5000) {
   const reader = request.body?.getReader()
   if (!reader) return ''
   const chunks: Uint8Array[] = []; let size = 0
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const deadline = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => { void reader.cancel().catch(() => {}); reject(new ApiError(408, 'Request body timed out')) }, timeoutMs)
+  })
   try {
-    while (true) {
-      const { value, done } = await reader.read()
-      if (done) break
-      size += value.byteLength
-      if (size > max) { await reader.cancel(); throw new ApiError(413, 'Request body too large') }
-      chunks.push(value)
-    }
-  } finally { reader.releaseLock() }
+    await Promise.race([deadline, (async () => {
+      while (true) {
+        const { value, done } = await reader.read()
+        if (done) break
+        size += value.byteLength
+        if (size > max) { void reader.cancel().catch(() => {}); throw new ApiError(413, 'Request body too large') }
+        chunks.push(value)
+      }
+    })()])
+  } finally { if (timer !== undefined) clearTimeout(timer); reader.releaseLock() }
   const joined = new Uint8Array(size); let offset = 0
   for (const c of chunks) { joined.set(c, offset); offset += c.length }
   return new TextDecoder().decode(joined)
 }
+
 function json(body: unknown, status = 200, headers: Record<string, string> = {}) { return Response.json(body, { status, headers: { 'cache-control': 'no-store', ...headers } }) }
 export function createGateway(deps: { payments: Payments; lookup(query: Query): Promise<unknown>; ledger: Ledger }) {
   return async (request: Request): Promise<Response> => {

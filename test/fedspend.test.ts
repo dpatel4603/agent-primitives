@@ -56,3 +56,11 @@ for (const data of [
 ]) test('source drift is rejected before delivering an invalid response', async () => {
   await assert.rejects(new Fedspend(async () => Response.json(data)).lookup(parseQuery(query)), reject(502))
 })
+
+test('award totals sum integer cents and reject unsafe amounts', async () => {
+  const client = (amounts: number[]) => new Fedspend(async () => Response.json({ results: amounts.map((amount, i) => ({ ...row, 'Award Amount': amount, generated_internal_id: `id${i}` })), page_metadata: { page: 1, hasNext: false } }))
+  assert.equal((await client([0.1, 0.2]).lookup(parseQuery(query))).returned_award_amount_sum, 0.3)
+  assert.equal((await client([1.11, -0.1]).lookup(parseQuery(query))).returned_award_amount_sum, 1.01)
+  await assert.rejects(client([Number.MAX_SAFE_INTEGER]).lookup(parseQuery(query)), reject(502))
+  await assert.rejects(client([8e13, 8e13]).lookup(parseQuery(query)), reject(502))
+})

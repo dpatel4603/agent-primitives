@@ -27,7 +27,7 @@ Production reconciliation remains a launch gate: verify the transaction against 
 
 ## Limits and scope
 
-- Request bodies are capped while streaming at 8 KiB; payment headers at 32 KiB.
+- Request bodies are capped while streaming at 8 KiB with a five-second read deadline; payment headers at 32 KiB.
 - Results over 90,000 serialized bytes are rejected before server payment submission; lower the page limit.
 - Initial limits are 30 requests per IP per minute, 300 requests globally per minute, and eight concurrently executing requests. Signed-credential verification precedes USAspending work and durable request creation.
 - Payment records are retained for audit and recovery. Rate buckets expire; storage growth and retention policy require operational monitoring before scaling.
@@ -52,9 +52,27 @@ No tool clears uncertain payments or resubmits them. If no qualifying payment ex
 
 ## Local verification recorded
 
-- 50 regression tests pass; TypeScript passes.
+- 54 regression tests pass; TypeScript passes.
 - Worker started under the actual local Cloudflare runtime with a SQLite-backed Durable Object.
 - Unpaid POST produced both MPP and x402 challenge headers, including Bazaar input/output metadata.
 - `@agentcash/discovery` recognizes exactly one paid route at $0.02 and both configured protocols; endpoint schema check passes.
 - GitHub Actions passes. The separate existing Cloudflare Workers Builds check failed; detailed logs require account access.
 - All local x402 metadata uses Base Sepolia and a placeholder facilitator; this is not a production payment test.
+
+## Additional launch verification (2026-09-11)
+
+- SQLite Durable Object restart regression passes in actual local workerd; original proof retrieves the persisted body and receipt after a full runtime restart.
+- Native transaction identities normalize supported Tempo signature encodings before hashing, matching the SDK settlement hash.
+- Native MPP testnet request succeeded through production gateway/payment/source modules in Node with a memory ledger and live USAspending data. The exact-proof retry returned an identical body and receipt and only one settlement invocation. This is not a deployed Worker verification.
+- Tempo Moderato transaction: `0x88e86fe11338039cd83ad042e96f73958cb7993ab537792b701ff4afe5231489`. Disposable faucet-funded wallet: `0xd7E89E5759d29881197c43769D433FD8a71F08E1`. No mainnet funds used.
+- Final local scanner discovery reports exactly one paid route, both protocols, and no discovery warnings. Award sums now use integer cents to avoid floating-point addition artifacts.
+
+### Unresolved upstream transport gate
+
+A minimal local workerd `fetch('https://api.usaspending.gov/api/v2/')` fails with an internal transport error, independently of the app and payment code. Node fetch and curl reach the same source; workerd reaches other HTTPS origins. IPv4 and IPv6 curl both work. The earlier fetch receiver hypothesis was disproved and that speculative change was removed. Do not bypass TLS verification. A real deployed Worker must successfully query USAspending before launch; local Node success does not clear this gate.
+
+### Deployment and x402 facilitator
+
+The existing Cloudflare Builds check has no useful GitHub diagnostic output. Confirm build logs after authentication. Initial deployment and new Durable Object migrations require `wrangler deploy`; a nonproduction branch's default `wrangler versions upload` cannot apply a new Durable Object class. Runtime secrets must be configured separately from build variables.
+
+PayAI (`https://facilitator.payai.network`) advertises Base and Base Sepolia v2 support and a no-key allowance of 1,000 lifetime settlements, subject to recipient and shared-IP limits. It is a candidate, not a verified production payment integration. Beyond the allowance, merchant credentials and credits are required. See https://docs.payai.network/x402/facilitators/pricing.

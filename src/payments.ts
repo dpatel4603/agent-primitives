@@ -3,6 +3,7 @@ import type { Store } from 'mppx/server'
 import { assets, Header, Types } from 'mppx/x402'
 import { Credential } from 'mppx'
 import { keccak256 } from 'viem'
+import { Transaction } from 'viem/tempo'
 import { inputSchema, outputSchema } from './schema.ts'
 import { ApiError } from './fedspend.ts'
 import { canonicalize, sha256 } from './gateway.ts'
@@ -102,7 +103,7 @@ export function createPayments(config: Config, store: Store.AtomicStore): Paymen
         const payload = credential.payload as { type: string; hash?: string; signature?: `0x${string}` }
         const req = credential.challenge.request
         const details = req.methodDetails as { chainId?: number } | undefined
-        const transaction_hash = payload.type === 'hash' ? payload.hash : payload.type === 'transaction' && payload.signature ? keccak256(payload.signature) : undefined
+        const transaction_hash = payload.type === 'hash' ? payload.hash : payload.type === 'transaction' && payload.signature ? keccak256(await Transaction.serialize(Transaction.deserialize(payload.signature))) : undefined
         if (!transaction_hash) throw new Error('Only transaction and hash proofs are supported for paid charges')
         const network = `eip155:${details?.chainId ?? (config.TEMPO_TESTNET === 'true' ? 42431 : 4217)}`
         return { key: await sha256(`mpp:${network}:${transaction_hash.toLowerCase()}`), proof,

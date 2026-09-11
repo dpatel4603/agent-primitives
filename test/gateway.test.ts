@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { ApiError } from '../src/fedspend.ts'
-import { createGateway } from '../src/gateway.ts'
+import { createGateway, readBody } from '../src/gateway.ts'
 import type { Payments } from '../src/gateway.ts'
 import { createLedger } from '../src/ledger.ts'
 import { memoryStorage, query } from './helpers.ts'
@@ -72,4 +72,12 @@ test('expired preparation lease can be reclaimed; old owner cannot settle or del
   const b = await ledger.claim('key', 'body', 'proof'); assert.equal(b.acquired, true)
   await assert.rejects(ledger.put('key', a.entry.owner, { ...a.entry, state: 'settling' }))
   await ledger.delete('key', a.entry.owner); assert.equal((await ledger.get('key'))?.owner, b.entry.owner)
+})
+
+test('slow request body has a deadline and cancellation', async () => {
+  let cancelled = false
+  const body = new ReadableStream({ cancel() { cancelled = true } })
+  const req = new Request('https://api.example.com', { method: 'POST', body, duplex: 'half' } as RequestInit)
+  await assert.rejects(readBody(req, 8192, 10), e => e instanceof ApiError && e.status === 408)
+  assert.equal(cancelled, true)
 })

@@ -21,7 +21,7 @@ export function openapi(config: Config) {
         responses: {
           '200': jsonResponse('Prepared award records with payment receipt', outputSchema),
           '402': { description: 'Payment required; unpaid probes do not query USAspending', headers: { 'WWW-Authenticate': { schema: text }, ...(config.X402_ENABLED === 'true' ? { 'Payment-Required': { schema: text } } : {}) } },
-          ...Object.fromEntries([[400, 'Invalid request'], [409, 'Ambiguous entity, conflicting retry, processing or reconciliation required'], [413, 'Request too large'], [429, 'Rate limited'], [502, 'Upstream unavailable or incompatible'], [503, 'Request preparation or payment reconciliation failure']].map(([code, description]) => [code, jsonResponse(String(description), errorSchema)])),
+          ...Object.fromEntries([[400, 'Invalid request'], [408, 'Request body timed out'], [409, 'Ambiguous entity, conflicting retry, processing or reconciliation required'], [413, 'Request too large'], [429, 'Rate limited'], [502, 'Upstream unavailable or incompatible'], [503, 'Request preparation or payment reconciliation failure']].map(([code, description]) => [code, jsonResponse(String(description), errorSchema)])),
         },
       } },
       '/health': { get: { security: [], responses: { '200': jsonResponse('Process health only; does not establish upstream or payment availability', object({ ok: { type: 'boolean' } })) } } },

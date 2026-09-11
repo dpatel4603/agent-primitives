@@ -73,6 +73,12 @@ export class Fedspend {
     if (!Array.isArray(data.results) || !data.results.every(record) || !record(data.page_metadata) || typeof data.page_metadata.hasNext !== 'boolean' || data.page_metadata.page !== query.page) throw new ApiError(502, 'Award source schema changed', { retryable: true })
     const rows = data.results as Record<string, unknown>[]
     if (rows.length > query.limit || rows.some(r => typeof r['Award Amount'] !== 'number' || !Number.isFinite(r['Award Amount']))) throw new ApiError(502, 'Award source has invalid amounts or page size', { retryable: true })
+    const amountCents = rows.map(r => Math.round((r['Award Amount'] as number) * 100))
+    let totalCents = 0
+    for (const cents of amountCents) {
+      totalCents += cents
+      if (!Number.isSafeInteger(cents) || !Number.isSafeInteger(totalCents)) throw new ApiError(502, 'Award amounts exceed supported precision', { retryable: true })
+    }
     const stringFields = ['Award ID', 'Recipient Name', 'Recipient UEI', 'Start Date', 'End Date', 'Awarding Agency', 'Awarding Sub Agency', 'Award Type', 'Description']
     if (rows.some(r => typeof r['Recipient Name'] !== 'string' || stringFields.some(k => r[k] !== undefined && r[k] !== null && typeof r[k] !== 'string')) || (data.messages !== undefined && (!Array.isArray(data.messages) || !data.messages.every(m => typeof m === 'string')))) throw new ApiError(502, 'Award source fields changed', { retryable: true })
     const identifiers = new Set(rows.map(r => r['Recipient UEI']).filter(x => typeof x === 'string' && x.length > 0))
@@ -86,7 +92,7 @@ export class Fedspend {
       query, resolved_recipient: rows[0]?.['Recipient Name'] ?? resolved,
       resolution: { method: query.recipient_uei ? 'uei' : 'exact_legal_name', recipient_uei: query.recipient_uei ?? (identifiers.size === 1 ? [...identifiers][0] : null), scope: 'Returned recipient records only; does not include or infer corporate parents or subsidiaries' },
       candidate_recipients: candidates, returned_award_count: awards.length,
-      returned_award_amount_sum: rows.reduce((sum, r) => sum + (r['Award Amount'] as number), 0),
+      returned_award_amount_sum: totalCents / 100,
       page: query.page, has_more: data.page_metadata.hasNext, next_page: data.page_metadata.hasNext ? query.page + 1 : null,
       awards, provenance: { source: 'USAspending.gov', source_url: 'https://api.usaspending.gov/docs/endpoints', retrieved_at, note: 'Sum covers only returned award amounts, not total revenue or spending incurred within the search dates. Date filters select awards under USAspending semantics. Pages are live and may change between requests.', messages: Array.isArray(data.messages) ? data.messages : [] },
     }
