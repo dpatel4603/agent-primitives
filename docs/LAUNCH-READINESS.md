@@ -52,7 +52,7 @@ No tool clears uncertain payments or resubmits them. If no qualifying payment ex
 
 ## Local verification recorded
 
-- 54 regression tests pass; TypeScript passes.
+- 55 regression tests pass; TypeScript passes.
 - Worker started under the actual local Cloudflare runtime with a SQLite-backed Durable Object.
 - Unpaid POST produced both MPP and x402 challenge headers, including Bazaar input/output metadata.
 - `@agentcash/discovery` recognizes exactly one paid route at $0.02 and both configured protocols; endpoint schema check passes.
@@ -67,9 +67,21 @@ No tool clears uncertain payments or resubmits them. If no qualifying payment ex
 - Tempo Moderato transaction: `0x88e86fe11338039cd83ad042e96f73958cb7993ab537792b701ff4afe5231489`. Disposable faucet-funded wallet: `0xd7E89E5759d29881197c43769D433FD8a71F08E1`. No mainnet funds used.
 - Final local scanner discovery reports exactly one paid route, both protocols, and no discovery warnings. Award sums now use integer cents to avoid floating-point addition artifacts.
 
-### Unresolved upstream transport gate
+### Local Worker transport and payment verified
 
-A minimal local workerd `fetch('https://api.usaspending.gov/api/v2/')` fails with an internal transport error, independently of the app and payment code. Node fetch and curl reach the same source; workerd reaches other HTTPS origins. IPv4 and IPv6 curl both work. The earlier fetch receiver hypothesis was disproved and that speculative change was removed. Do not bypass TLS verification. A real deployed Worker must successfully query USAspending before launch; local Node success does not clear this gate.
+Two independent issues caused the initial failure. Local workerd lacked the trusted Sectigo Public Server Authentication Root R46 used by USAspending's certificate chain; supplying the machine's existing trusted CA bundle through `NODE_EXTRA_CA_CERTS` resolved TLS transport without disabling verification. After that, workerd exposed an `Illegal invocation` because the default fetch function was invoked as a property of the source client. Calling it with `globalThis` fixes that application bug. A deterministic actual-Worker regression now exercises the real global fetch against a separate upstream fixture worker.
+
+On this development machine the safe local command is:
+
+```sh
+NODE_EXTRA_CA_CERTS=/opt/anaconda3/ssl/cacert.pem npm run dev
+```
+
+Use an appropriate trusted CA bundle on other machines; do not disable certificate validation or assume that this machine-specific path exists elsewhere.
+
+Full local Worker + SQLite Durable Object + live USAspending + Tempo Moderato test passed (HTTP 200, two awards). Testnet transaction: `0xd2f4227e99ae726e720a74911d899b7de636a335c6fedbab0ea0a48bfcbc1c55`. Request ID: `58fe8c9fb45dbf1437069ab3c1879ed1c45543850b907dda257a953839c133ea`. Exact-proof retry returned `Idempotency-Replayed: true`, the identical body and identical receipt. Production edge connectivity and mainnet payment are still launch gates.
+
+Independent security review at `0e40eb8` found no additional actionable issues and independently passed all then-current 54 tests. The subsequent fetch fix adds a 55th regression; final follow-up review is recorded in the PR. Tests cover persisted-response recovery, not a process crash during an actual on-chain broadcast.
 
 ### Deployment and x402 facilitator
 

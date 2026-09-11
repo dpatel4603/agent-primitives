@@ -36,7 +36,7 @@ export class Fedspend {
   private async post(path: string, body: unknown): Promise<Record<string, unknown>> {
     for (let attempt = 0; attempt < 2; attempt++) {
       try {
-        const response = await this.fetcher(`https://api.usaspending.gov/api/v2/${path}/`, {
+        const response = await this.fetcher.call(globalThis, `https://api.usaspending.gov/api/v2/${path}/`, {
           method: 'POST', headers: { 'content-type': 'application/json', 'user-agent': this.userAgent },
           body: JSON.stringify(body), signal: AbortSignal.timeout(8000),
         })

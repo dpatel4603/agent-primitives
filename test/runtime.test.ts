@@ -9,7 +9,7 @@ import { Challenge, Credential } from 'mppx'
 import { Store } from 'mppx/server'
 import { createPayments, PATH } from '../src/payments.ts'
 import { canonicalize, sha256 } from '../src/gateway.ts'
-import { config, query } from './helpers.ts'
+import { config, query, row } from './helpers.ts'
 
 test('actual Worker and SQLite Durable Object recover response after runtime restart', { timeout: 30000 }, async () => {
   const dir = await mkdtemp(join(tmpdir(), 'agent-primitives-runtime-'))
@@ -36,4 +36,19 @@ test('actual Worker and SQLite Durable Object recover response after runtime res
     assert.equal(result.status, 200); assert.equal(result.headers.get('idempotency-replayed'), 'true'); assert.equal(result.headers.get('payment-receipt'), 'fixture-receipt'); assert.deepEqual(await result.json(), { persisted: true })
     assert.equal((await mf.dispatchFetch('https://api.example.com/internal/reconcile')).status, 404)
   } finally { await mf?.dispose(); await rm(dir, { recursive: true, force: true }) }
+})
+
+
+test('actual Worker invokes the default upstream fetch with the correct receiver', { timeout: 30000 }, async () => {
+  const script = buildSync({ stdin: { contents: `import { Fedspend, parseQuery } from './src/fedspend.ts'; export default { async fetch() { return Response.json(await new Fedspend().lookup(parseQuery(${JSON.stringify(query)}))) } }`, resolveDir: process.cwd(), loader: 'ts' }, bundle: true, write: false, format: 'esm', platform: 'neutral', target: 'es2022' }).outputFiles[0].text
+  const upstream = `export default { async fetch(request) { const body = await request.json(); if (request.url !== 'https://api.usaspending.gov/api/v2/search/spending_by_award/' || request.method !== 'POST' || body.filters.recipient_search_text[0] !== '${query.recipient_uei}') return new Response(null, {status: 400}); return Response.json(${JSON.stringify({ results: [row], page_metadata: { page: 1, hasNext: false } })}) } }`
+  const mf = new Miniflare(convertV4MiniflareOptions({ workers: [
+    { name: 'source-client', modules: true, compatibilityDate: '2026-09-03', script, outboundService: 'upstream' },
+    { name: 'upstream', modules: true, compatibilityDate: '2026-09-03', script: upstream },
+  ] }))
+  try {
+    const result = await mf.dispatchFetch('https://api.example.com')
+    assert.equal(result.status, 200)
+    assert.equal((await result.json() as any).returned_award_count, 1)
+  } finally { await mf.dispose() }
 })
